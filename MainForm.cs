@@ -7,14 +7,15 @@ public sealed class MainForm : Form
     private readonly DataStore _store = new();
     private readonly TabControl _tabs = new(){Dock=DockStyle.Fill};
     private readonly DataGridView _partners=Grid(),_products=Grid(),_trades=Grid(),_settlements=Grid(),_ledger=Grid();
-    private readonly Label _summary=new(){Dock=DockStyle.Top,Height=72,Font=new Font("맑은 고딕",15,FontStyle.Bold),Padding=new Padding(14)};
-    private readonly Label _backup=new(){Dock=DockStyle.Bottom,Height=30,Padding=new Padding(10)};
+    private readonly Label _summary=new(){Dock=DockStyle.Top,Height=110,Font=new Font("맑은 고딕",15,FontStyle.Bold),Padding=new Padding(14,12,14,12),AutoEllipsis=false};
+    private readonly Label _backup=new(){Dock=DockStyle.Bottom,Height=34,Padding=new Padding(10,7,10,7),AutoEllipsis=true};
     private readonly ComboBox _partnerType=new(){DropDownStyle=ComboBoxStyle.DropDownList,Width=90};
     private readonly ComboBox _ledgerPartner=new(){DropDownStyle=ComboBoxStyle.DropDownList,Width=240};
 
     public MainForm()
     {
-        Text=$"지입회사 거래처관리 {UpdateService.CurrentVersion}";Width=1400;Height=860;StartPosition=FormStartPosition.CenterScreen;Font=new Font("맑은 고딕",9.5f);
+        AutoScaleDimensions=new SizeF(96F,96F);AutoScaleMode=AutoScaleMode.Dpi;
+        Text=$"지입회사 거래처관리 {UpdateService.CurrentVersion}";Width=1400;Height=860;MinimumSize=new Size(980,650);StartPosition=FormStartPosition.CenterScreen;Font=new Font("맑은 고딕",9.5f);
         Controls.Add(_tabs);BuildDashboard();BuildPartners();BuildProducts();BuildTrades();BuildSettlements();BuildLedger();BuildSettings();RefreshAll();
         FormClosing+=(_,_)=>_store.Save();
     }
