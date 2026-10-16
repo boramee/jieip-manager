@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace JieipManager;
 
@@ -9,25 +7,24 @@ public sealed record ReleaseInfo(Version Version, string DownloadUrl, string Not
 
 public static class UpdateService
 {
-    private const string LatestReleaseApi = "https://api.github.com/repos/boramee/jieip-manager/releases/latest";
+    private const string LatestReleaseUrl = "https://github.com/boramee/jieip-manager/releases/latest";
+    private const string ReleaseDownloadBase = "https://github.com/boramee/jieip-manager/releases/download";
     private const string AssetName = "JieipManager-win-x64.exe";
 
     public static Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
 
     public static async Task<ReleaseInfo> GetLatestReleaseAsync()
     {
-        using var http = new HttpClient();
+        using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = true });
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"JieipManager/{CurrentVersion}");
-        http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        using var response = await http.GetAsync(LatestReleaseApi);
+        using var response = await http.GetAsync(LatestReleaseUrl, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadAsStringAsync();
-        var release = JsonSerializer.Deserialize<GitHubRelease>(json) ?? throw new InvalidOperationException("GitHub Release 정보를 읽을 수 없습니다.");
-        var versionText = release.TagName.Trim().TrimStart('v', 'V');
-        if (!Version.TryParse(versionText, out var version)) throw new InvalidOperationException($"알 수 없는 버전 형식입니다: {release.TagName}");
-        var asset = release.Assets.FirstOrDefault(x => string.Equals(x.Name, AssetName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"업데이트 파일({AssetName})이 Release에 없습니다.");
-        return new ReleaseInfo(version, asset.DownloadUrl, release.Body ?? "");
+        var finalUri = response.RequestMessage?.RequestUri ?? throw new InvalidOperationException("최신 Release 주소를 확인할 수 없습니다.");
+        var tag = finalUri.Segments.LastOrDefault()?.Trim('/') ?? "";
+        var versionText = Uri.UnescapeDataString(tag).Trim().TrimStart('v', 'V');
+        if (!Version.TryParse(versionText, out var version)) throw new InvalidOperationException($"알 수 없는 최신 버전 주소입니다: {finalUri}");
+        var download = $"{ReleaseDownloadBase}/v{version}/{AssetName}";
+        return new ReleaseInfo(version, download, "화면 및 기능 안정화 업데이트");
     }
 
     public static bool IsNewer(Version latest) => latest > CurrentVersion;
@@ -82,16 +79,4 @@ public static class UpdateService
 
     private static string PsQuote(string value) => value.Replace("'", "''");
 
-    private sealed class GitHubRelease
-    {
-        [JsonPropertyName("tag_name")] public string TagName { get; set; } = "";
-        [JsonPropertyName("body")] public string? Body { get; set; }
-        [JsonPropertyName("assets")] public List<GitHubAsset> Assets { get; set; } = [];
-    }
-
-    private sealed class GitHubAsset
-    {
-        [JsonPropertyName("name")] public string Name { get; set; } = "";
-        [JsonPropertyName("browser_download_url")] public string DownloadUrl { get; set; } = "";
-    }
 }
