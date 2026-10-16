@@ -21,9 +21,9 @@ public sealed class MainForm : Form
     }
 
     private static DataGridView Grid()=>new(){Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,SelectionMode=DataGridViewSelectionMode.FullRowSelect,MultiSelect=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill,RowHeadersVisible=false,BackgroundColor=Color.White};
-    private static Button Btn(string text,EventHandler click){var b=new Button{Text=text,AutoSize=true,Height=34,Margin=new Padding(4)};b.Click+=click;return b;}
-    private static FlowLayoutPanel Bar(params Control[] c){var p=new FlowLayoutPanel{Dock=DockStyle.Top,Height=46,Padding=new Padding(6),WrapContents=false};p.Controls.AddRange(c);return p;}
-    private static Label Caption(string text)=>new(){Text=text,AutoSize=true,Padding=new Padding(8,9,0,0)};
+    private static Button Btn(string text,EventHandler click){var b=new Button{Text=text,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,MinimumSize=new Size(0,40),Padding=new Padding(10,5,10,5),Margin=new Padding(4)};b.Click+=click;return b;}
+    private static FlowLayoutPanel Bar(params Control[] c){var p=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,MinimumSize=new Size(0,54),Padding=new Padding(7),WrapContents=false};p.Controls.AddRange(c);return p;}
+    private static Label Caption(string text)=>new(){Text=text,AutoSize=true,Padding=new Padding(8,10,0,0),Margin=new Padding(3,4,3,4)};
     private static Label SummaryLabel()=>new(){Dock=DockStyle.Fill,Font=new Font("맑은 고딕",14,FontStyle.Bold),Padding=new Padding(14,8,14,8),TextAlign=ContentAlignment.MiddleLeft,AutoEllipsis=false};
 
     private void BuildDashboard()
@@ -31,7 +31,7 @@ public sealed class MainForm : Form
         var p=new TabPage("현황");
         var layout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=Padding.Empty};
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,50));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute,150));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute,52));
@@ -102,7 +102,7 @@ public sealed class MainForm : Form
     private static ComboBox Choice(string[] a,string value){var c=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,DataSource=a};if(a.Contains(value))c.SelectedItem=value;return c;}
     private static NumericUpDown Money(decimal v)=>new(){Minimum=0,Maximum=1_000_000_000,DecimalPlaces=2,ThousandsSeparator=true,Value=Math.Clamp(v,0,1_000_000_000)};
     private static string T(Dictionary<string,Control> f,string k)=>((TextBox)f[k]).Text.Trim();private static decimal N(Dictionary<string,Control> f,string k)=>((NumericUpDown)f[k]).Value;
-    private static TableLayoutPanel FormPanel(Dictionary<string,Control> f){var p=new TableLayoutPanel{ColumnCount=2,RowCount=f.Count,Padding=new Padding(18),AutoScroll=true};p.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,130));p.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));int r=0;foreach(var(x,c)in f){p.RowStyles.Add(new RowStyle(SizeType.Absolute,38));p.Controls.Add(new Label{Text=x,AutoSize=true,Padding=new Padding(0,8,0,0)},0,r);c.Dock=DockStyle.Fill;p.Controls.Add(c,1,r++);}return p;}
+    private static TableLayoutPanel FormPanel(Dictionary<string,Control> f){var p=new TableLayoutPanel{ColumnCount=2,RowCount=f.Count,Padding=new Padding(18),AutoScroll=true,AutoSize=true};p.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,150));p.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));int r=0;foreach(var(x,c)in f){p.RowStyles.Add(new RowStyle(SizeType.AutoSize));p.Controls.Add(new Label{Text=x,AutoSize=true,Padding=new Padding(0,10,0,0),Margin=new Padding(3,4,3,8)},0,r);c.Dock=DockStyle.Top;c.MinimumSize=new Size(0,34);c.Margin=new Padding(3,4,3,8);p.Controls.Add(c,1,r++);}return p;}
     private static bool Dialog(string title,Dictionary<string,Control> f){using var d=new Form{Text=title,Width=560,Height=Math.Min(780,130+f.Count*40),StartPosition=FormStartPosition.CenterParent,Font=new Font("맑은 고딕",9.5f)};var buttons=new FlowLayoutPanel{Dock=DockStyle.Bottom,Height=52,FlowDirection=FlowDirection.RightToLeft,Padding=new Padding(8)};var ok=new Button{Text="저장",DialogResult=DialogResult.OK,Width=90};var cancel=new Button{Text="취소",DialogResult=DialogResult.Cancel,Width=90};buttons.Controls.Add(ok);buttons.Controls.Add(cancel);var panel=FormPanel(f);panel.Dock=DockStyle.Fill;d.Controls.Add(panel);d.Controls.Add(buttons);d.AcceptButton=ok;d.CancelButton=cancel;return d.ShowDialog()==DialogResult.OK;}
     private static void Hide(DataGridView g){if(g.Columns.Contains("Id"))g.Columns["Id"].Visible=false;MoneyFormat(g);}private static void MoneyFormat(DataGridView g){foreach(DataGridViewColumn c in g.Columns)if(new[]{"단가","초기재고","매입수량","매출수량","재고","수량","공급가액","세액","추가","할인","합계","금액","매입매출","지급수금"}.Contains(c.Name))c.DefaultCellStyle.Format="N0";}
 }
