@@ -2,12 +2,12 @@ namespace JieipManager;
 
 public sealed class AppData
 {
+    public int SchemaVersion { get; set; } = 2;
     public CompanySettings Settings { get; set; } = new();
-    public List<Owner> Owners { get; set; } = [];
-    public List<Vehicle> Vehicles { get; set; } = [];
-    public List<Charge> Charges { get; set; } = [];
-    public List<Payment> Payments { get; set; } = [];
-    public List<WorkItem> WorkItems { get; set; } = [];
+    public List<Partner> Partners { get; set; } = [];
+    public List<Product> Products { get; set; } = [];
+    public List<Trade> Trades { get; set; } = [];
+    public List<Settlement> Settlements { get; set; } = [];
 }
 
 public sealed class CompanySettings
@@ -17,75 +17,68 @@ public sealed class CompanySettings
     public string Representative { get; set; } = "";
     public string Phone { get; set; } = "";
     public string Address { get; set; } = "";
-    public int ManagementFee { get; set; }
-    public int UtilityFee { get; set; }
-    public int InsuranceFee { get; set; }
-    public int AssociationFee { get; set; }
-    public int EtcFee { get; set; }
-    public int DueDay { get; set; } = 25;
     public string BackupFolder { get; set; } = "";
 }
 
-public sealed class Owner
+public sealed class Partner
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Type { get; set; } = "매출처";
+    public string Name { get; set; } = "";
+    public string Representative { get; set; } = "";
+    public string BusinessNumber { get; set; } = "";
+    public string MainPhone { get; set; } = "";
+    public string Fax { get; set; } = "";
+    public string Address { get; set; } = "";
+    public string BusinessType { get; set; } = "";
+    public string BusinessItem { get; set; } = "";
+    public string ContactName { get; set; } = "";
+    public string Department { get; set; } = "";
+    public string Position { get; set; } = "";
+    public string ContactPhone { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string Memo { get; set; } = "";
+}
+
+public sealed class Product
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "";
-    public string BusinessNumber { get; set; } = "";
-    public string Phone { get; set; } = "";
-    public string Address { get; set; } = "";
-    public DateTime JoinDate { get; set; } = DateTime.Today;
-    public bool Active { get; set; } = true;
+    public string Code { get; set; } = "";
+    public string Specification { get; set; } = "";
+    public string Unit { get; set; } = "";
+    public decimal UnitPrice { get; set; }
+    public decimal InitialStock { get; set; }
     public string Memo { get; set; } = "";
 }
 
-public sealed class Vehicle
+public sealed class Trade
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid OwnerId { get; set; }
-    public string PlateNumber { get; set; } = "";
-    public string VehicleType { get; set; } = "";
-    public string Model { get; set; } = "";
-    public int Year { get; set; } = DateTime.Today.Year;
-    public DateTime? InspectionDue { get; set; }
-    public DateTime? InsuranceDue { get; set; }
-    public bool Active { get; set; } = true;
+    public DateTime TradeDate { get; set; } = DateTime.Today;
+    public string Type { get; set; } = "매출";
+    public string PartnerName { get; set; } = "";
+    public string ProductName { get; set; } = "";
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public string TaxType { get; set; } = "별도";
+    public decimal SupplyAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal AdditionalAmount { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal Total { get; set; }
     public string Memo { get; set; } = "";
 }
 
-public sealed class Charge
+public sealed class Settlement
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public string BillingMonth { get; set; } = DateTime.Today.ToString("yyyy-MM");
-    public Guid OwnerId { get; set; }
-    public Guid VehicleId { get; set; }
-    public int ManagementFee { get; set; }
-    public int UtilityFee { get; set; }
-    public int InsuranceFee { get; set; }
-    public int AssociationFee { get; set; }
-    public int EtcFee { get; set; }
-    public DateTime DueDate { get; set; } = DateTime.Today;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-    public string Memo { get; set; } = "";
-    public int Total => ManagementFee + UtilityFee + InsuranceFee + AssociationFee + EtcFee;
-}
-
-public sealed class Payment
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid ChargeId { get; set; }
-    public DateTime PaidAt { get; set; } = DateTime.Today;
-    public int Amount { get; set; }
-    public string Method { get; set; } = "계좌이체";
+    public DateTime Date { get; set; } = DateTime.Today;
+    public string Type { get; set; } = "수금";
+    public string PartnerName { get; set; } = "";
+    public string Description { get; set; } = "";
+    public decimal Amount { get; set; }
     public string Memo { get; set; } = "";
 }
 
-public sealed class WorkItem
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid? VehicleId { get; set; }
-    public string Type { get; set; } = "검사";
-    public string Title { get; set; } = "";
-    public DateTime DueDate { get; set; } = DateTime.Today;
-    public string Status { get; set; } = "대기";
-    public string Memo { get; set; } = "";
-}
+public sealed record ImportResult(AppData Data, int PartnerCount, int ProductCount, int TradeCount, int SettlementCount, int SkippedSettlementCount);
