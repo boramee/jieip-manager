@@ -7,8 +7,8 @@ public sealed class MainForm : Form
     private readonly DataStore _store = new();
     private readonly TabControl _tabs = new(){Dock=DockStyle.Fill};
     private readonly DataGridView _partners=Grid(),_products=Grid(),_trades=Grid(),_settlements=Grid(),_ledger=Grid();
-    private readonly Label _summary=new(){Dock=DockStyle.Top,Height=110,Font=new Font("맑은 고딕",15,FontStyle.Bold),Padding=new Padding(14,12,14,12),AutoEllipsis=false};
-    private readonly Label _backup=new(){Dock=DockStyle.Bottom,Height=34,Padding=new Padding(10,7,10,7),AutoEllipsis=true};
+    private readonly Label _summary=new(){Dock=DockStyle.Fill,Font=new Font("맑은 고딕",15,FontStyle.Bold),Padding=new Padding(14,12,14,12),AutoEllipsis=false};
+    private readonly Label _backup=new(){Dock=DockStyle.Fill,Padding=new Padding(10,7,10,7),AutoEllipsis=true};
     private readonly ComboBox _partnerType=new(){DropDownStyle=ComboBoxStyle.DropDownList,Width=90};
     private readonly ComboBox _ledgerPartner=new(){DropDownStyle=ComboBoxStyle.DropDownList,Width=240};
 
@@ -27,8 +27,18 @@ public sealed class MainForm : Form
 
     private void BuildDashboard()
     {
-        var p=new TabPage("현황");p.Controls.Add(new Label{Dock=DockStyle.Fill,Text="제공된 거래처관리대장의 구조를 기준으로 합니다.\n\n• 매입처·매출처 및 상품 등록\n• 매입·매출과 부가세 계산\n• 지급·수금 및 미지급·미수 관리\n• 기존 XLSX 전체 가져오기",Font=new Font("맑은 고딕",12),Padding=new Padding(24),TextAlign=ContentAlignment.MiddleLeft});
-        p.Controls.Add(_backup);p.Controls.Add(_summary);p.Controls.Add(Bar(Btn("거래처관리대장 XLSX 가져오기",(_,_)=>ImportExcel()),Btn("데이터 폴더 열기",(_,_)=>Process.Start(new ProcessStartInfo("explorer.exe",_store.BaseFolder){UseShellExecute=true}))));_tabs.TabPages.Add(p);
+        var p=new TabPage("현황");
+        var layout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=Padding.Empty};
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,50));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,110));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,36));
+        var toolbar=Bar(Btn("거래처관리대장 XLSX 가져오기",(_,_)=>ImportExcel()),Btn("데이터 폴더 열기",(_,_)=>Process.Start(new ProcessStartInfo("explorer.exe",_store.BaseFolder){UseShellExecute=true})));
+        toolbar.Dock=DockStyle.Fill;
+        var guide=new Label{Dock=DockStyle.Fill,Text="제공된 거래처관리대장의 구조를 기준으로 합니다.\n\n• 매입처·매출처 및 상품 등록\n• 매입·매출과 부가세 계산\n• 지급·수금 및 미지급·미수 관리\n• 기존 XLSX 전체 가져오기",Font=new Font("맑은 고딕",12),Padding=new Padding(24),TextAlign=ContentAlignment.MiddleLeft};
+        layout.Controls.Add(toolbar,0,0);layout.Controls.Add(_summary,0,1);layout.Controls.Add(guide,0,2);layout.Controls.Add(_backup,0,3);
+        p.Controls.Add(layout);_tabs.TabPages.Add(p);
     }
     private void BuildPartners(){_partnerType.Items.AddRange(["전체","매입처","매출처"]);_partnerType.SelectedIndex=0;_partnerType.SelectedIndexChanged+=(_,_)=>RefreshPartners();var p=new TabPage("거래처");p.Controls.Add(_partners);p.Controls.Add(Bar(Caption("구분"),_partnerType,Btn("추가",(_,_)=>EditPartner(null)),Btn("수정",(_,_)=>EditPartner(Selected<Partner>(_partners,_store.Data.Partners))),Btn("삭제",(_,_)=>DeletePartner())));_tabs.TabPages.Add(p);}
     private void BuildProducts(){var p=new TabPage("상품");p.Controls.Add(_products);p.Controls.Add(Bar(Btn("추가",(_,_)=>EditProduct(null)),Btn("수정",(_,_)=>EditProduct(Selected<Product>(_products,_store.Data.Products))),Btn("삭제",(_,_)=>DeleteProduct())));_tabs.TabPages.Add(p);}
