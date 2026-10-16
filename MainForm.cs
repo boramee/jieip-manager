@@ -7,7 +7,7 @@ public sealed class MainForm : Form
     private readonly DataStore _store = new();
     private readonly TabControl _tabs = new(){Dock=DockStyle.Fill};
     private readonly DataGridView _partners=Grid(),_products=Grid(),_trades=Grid(),_settlements=Grid(),_ledger=Grid();
-    private readonly Label _summary=new(){Dock=DockStyle.Fill,Font=new Font("맑은 고딕",15,FontStyle.Bold),Padding=new Padding(14,12,14,12),AutoEllipsis=false};
+    private readonly Label _purchaseSummary=SummaryLabel(),_salesSummary=SummaryLabel();
     private readonly Label _backup=new(){Dock=DockStyle.Fill,Padding=new Padding(10,7,10,7),AutoEllipsis=true};
     private readonly ComboBox _partnerType=new(){DropDownStyle=ComboBoxStyle.DropDownList,Width=90};
     private readonly ComboBox _ledgerPartner=new(){DropDownStyle=ComboBoxStyle.DropDownList,Width=240};
@@ -24,6 +24,7 @@ public sealed class MainForm : Form
     private static Button Btn(string text,EventHandler click){var b=new Button{Text=text,AutoSize=true,Height=34,Margin=new Padding(4)};b.Click+=click;return b;}
     private static FlowLayoutPanel Bar(params Control[] c){var p=new FlowLayoutPanel{Dock=DockStyle.Top,Height=46,Padding=new Padding(6),WrapContents=false};p.Controls.AddRange(c);return p;}
     private static Label Caption(string text)=>new(){Text=text,AutoSize=true,Padding=new Padding(8,9,0,0)};
+    private static Label SummaryLabel()=>new(){Dock=DockStyle.Fill,Font=new Font("맑은 고딕",14,FontStyle.Bold),Padding=new Padding(14,8,14,8),TextAlign=ContentAlignment.MiddleLeft,AutoEllipsis=false};
 
     private void BuildDashboard()
     {
@@ -31,13 +32,16 @@ public sealed class MainForm : Form
         var layout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=Padding.Empty};
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute,50));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,110));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,150));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,36));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute,52));
         var toolbar=Bar(Btn("거래처관리대장 XLSX 가져오기",(_,_)=>ImportExcel()),Btn("데이터 폴더 열기",(_,_)=>Process.Start(new ProcessStartInfo("explorer.exe",_store.BaseFolder){UseShellExecute=true})));
         toolbar.Dock=DockStyle.Fill;
         var guide=new Label{Dock=DockStyle.Fill,Text="제공된 거래처관리대장의 구조를 기준으로 합니다.\n\n• 매입처·매출처 및 상품 등록\n• 매입·매출과 부가세 계산\n• 지급·수금 및 미지급·미수 관리\n• 기존 XLSX 전체 가져오기",Font=new Font("맑은 고딕",12),Padding=new Padding(24),TextAlign=ContentAlignment.MiddleLeft};
-        layout.Controls.Add(toolbar,0,0);layout.Controls.Add(_summary,0,1);layout.Controls.Add(guide,0,2);layout.Controls.Add(_backup,0,3);
+        var summaries=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=2,Margin=Padding.Empty,Padding=Padding.Empty};
+        summaries.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));summaries.RowStyles.Add(new RowStyle(SizeType.Percent,50));summaries.RowStyles.Add(new RowStyle(SizeType.Percent,50));
+        summaries.Controls.Add(_purchaseSummary,0,0);summaries.Controls.Add(_salesSummary,0,1);
+        layout.Controls.Add(toolbar,0,0);layout.Controls.Add(summaries,0,1);layout.Controls.Add(guide,0,2);layout.Controls.Add(_backup,0,3);
         p.Controls.Add(layout);_tabs.TabPages.Add(p);
     }
     private void BuildPartners(){_partnerType.Items.AddRange(["전체","매입처","매출처"]);_partnerType.SelectedIndex=0;_partnerType.SelectedIndexChanged+=(_,_)=>RefreshPartners();var p=new TabPage("거래처");p.Controls.Add(_partners);p.Controls.Add(Bar(Caption("구분"),_partnerType,Btn("추가",(_,_)=>EditPartner(null)),Btn("수정",(_,_)=>EditPartner(Selected<Partner>(_partners,_store.Data.Partners))),Btn("삭제",(_,_)=>DeletePartner())));_tabs.TabPages.Add(p);}
@@ -86,7 +90,7 @@ public sealed class MainForm : Form
         _trades.DataSource=_store.Data.Trades.OrderByDescending(x=>x.TradeDate).Select(x=>new{x.Id,거래일자=x.TradeDate.ToString("yyyy-MM-dd"),구분=x.Type,거래처=x.PartnerName,상품=x.ProductName,수량=x.Quantity,단가=x.UnitPrice,세액구분=x.TaxType,공급가액=x.SupplyAmount,세액=x.TaxAmount,추가=x.AdditionalAmount,할인=x.DiscountAmount,합계=x.Total,x.Memo}).ToList();Hide(_trades);
         _settlements.DataSource=_store.Data.Settlements.OrderByDescending(x=>x.Date).Select(x=>new{x.Id,일자=x.Date.ToString("yyyy-MM-dd"),구분=x.Type,거래처=x.PartnerName,적요=x.Description,금액=x.Amount,x.Memo}).ToList();Hide(_settlements);
         var names=_store.Data.Partners.Select(x=>x.Name).Distinct().Order().ToArray();var old=_ledgerPartner.Text;_ledgerPartner.DataSource=names;if(names.Contains(old))_ledgerPartner.SelectedItem=old;RefreshLedger();
-        var buy=_store.Data.Trades.Where(x=>x.Type=="매입").Sum(x=>x.Total);var sales=_store.Data.Trades.Where(x=>x.Type=="매출").Sum(x=>x.Total);var paid=_store.Data.Settlements.Where(x=>x.Type=="지급").Sum(x=>x.Amount);var received=_store.Data.Settlements.Where(x=>x.Type=="수금").Sum(x=>x.Amount);_summary.Text=$"매입 {buy:N0}원  지급 {paid:N0}원  미지급 {buy-paid:N0}원\n매출 {sales:N0}원  수금 {received:N0}원  미수 {sales-received:N0}원";_backup.Text=_store.LastBackupStatus;
+        var buy=_store.Data.Trades.Where(x=>x.Type=="매입").Sum(x=>x.Total);var sales=_store.Data.Trades.Where(x=>x.Type=="매출").Sum(x=>x.Total);var paid=_store.Data.Settlements.Where(x=>x.Type=="지급").Sum(x=>x.Amount);var received=_store.Data.Settlements.Where(x=>x.Type=="수금").Sum(x=>x.Amount);_purchaseSummary.Text=$"매입 {buy:N0}원   지급 {paid:N0}원   미지급 {buy-paid:N0}원";_salesSummary.Text=$"매출 {sales:N0}원   수금 {received:N0}원   미수 {sales-received:N0}원";_backup.Text=_store.LastBackupStatus;
     }
     private void RefreshPartners(){if(_partnerType.SelectedItem is null)return;var type=_partnerType.Text;_partners.DataSource=_store.Data.Partners.Where(x=>type=="전체"||x.Type==type).OrderBy(x=>x.Name).Select(x=>new{x.Id,구분=x.Type,거래처명=x.Name,대표자=x.Representative,사업자번호=x.BusinessNumber,대표번호=x.MainPhone,담당자=x.ContactName,전화=x.ContactPhone,이메일=x.Email,주소=x.Address}).ToList();Hide(_partners);}
     private void RefreshLedger(){var name=_ledgerPartner.Text;if(name==""){_ledger.DataSource=null;return;}var rows=new List<object>();rows.AddRange(_store.Data.Trades.Where(x=>x.PartnerName==name).Select(x=>(object)new{일자=x.TradeDate.ToString("yyyy-MM-dd"),구분=x.Type,내용=x.ProductName,매입매출=x.Total,지급수금=0m}));rows.AddRange(_store.Data.Settlements.Where(x=>x.PartnerName==name).Select(x=>(object)new{일자=x.Date.ToString("yyyy-MM-dd"),구분=x.Type,내용=x.Description,매입매출=0m,지급수금=x.Amount}));_ledger.DataSource=rows.OrderBy(x=>x.GetType().GetProperty("일자")?.GetValue(x)).ToList();MoneyFormat(_ledger);}
